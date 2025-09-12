@@ -460,7 +460,7 @@
                     <div class="form-group">
                         <label>Modo de Localização:</label>
                         <select class="form-control" id="locationMode" onchange="changeLocationMode()">
-                            <option value="device">📱 GNSS do Dispositivo (Galaxy A34)</option>
+                            <option value="device">📱 GNSS do Dispositivo</option>
                             <option value="rtk">🛰️ Receptor RTK Externo</option>
                             <option value="combined">🔄 Combinado (Device + RTK)</option>
                         </select>
@@ -789,14 +789,14 @@
         function initializeGNSSSystem() {
             // Verificar capacidades do dispositivo
             if (navigator.geolocation) {
-                // Verificar se é um dispositivo móvel (provável Galaxy A34)
+                // Verificar se é um dispositivo móvel
                 const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
                 const isAndroid = /Android/i.test(navigator.userAgent);
                 
                 if (isMobile && isAndroid) {
                     updateGNSSStatus('connected', '✅ Dispositivo Android detectado - Sistemas GNSS multi-constelação disponíveis');
                     
-                    // Configurar valores padrão otimizados para Galaxy A34
+                    // Configurar valores padrão otimizados
                     document.getElementById('gnssSystem').value = 'combined';
                     document.getElementById('accuracyMode').value = 'balanced';
                     document.getElementById('locationMode').value = 'device';
