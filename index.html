@@ -4,7 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RTK Data Collector</title>
-    <link rel="manifest" href="data:application/json,{%22name%22:%22RTK%20Data%20Collector%22,%22short_name%22:%22RTK%20Collector%22,%22start_url%22:%22/%22,%22display%22:%22standalone%22,%22theme_color%22:%22%232196F3%22,%22background_color%22:%22%23ffffff%22,%22icons%22:[{%22src%22:%22data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='%232196F3'/%3E%3Ctext x='50' y='60' text-anchor='middle' fill='white' font-size='30'%3ERTK%3C/text%3E%3C/svg%3E%22,%22sizes%22:%22512x512%22,%22type%22:%22image/svg+xml%22}]}">
+    
+    <link rel="manifest" href="manifest.json">
+
+    <meta name="theme-color" content="#2196F3">
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+
     <style>
         * {
             margin: 0;
@@ -773,9 +781,15 @@
             startLocationUpdates();
             initializeGNSSSystem();
             
-            // Registrar Service Worker para funcionalidade offline
+            // PWA: Registra o Service Worker para funcionalidade offline
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('data:text/javascript,console.log("SW registered")');
+                navigator.serviceWorker.register('sw.js')
+                    .then(registration => {
+                        console.log('Service Worker registrado com sucesso:', registration);
+                    })
+                    .catch(error => {
+                        console.log('Falha no registro do Service Worker:', error);
+                    });
             }
         });
 
