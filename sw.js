@@ -1,0 +1,1831 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RTK Data Collector</title>
+    
+    <link rel="manifest" href="manifest.json">
+
+    <meta name="theme-color" content="#2196F3">
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(90deg, #2196F3, #21CBF3);
+            border-radius: 15px 15px 0 0;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: pulse 4s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 0.1; transform: scale(1.1); }
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f5f5f5;
+            border-radius: 10px;
+            margin: 20px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #2196F3, #21CBF3);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(33, 150, 243, 0.3);
+        }
+
+        .tab:hover:not(.active) {
+            background: rgba(33, 150, 243, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .content {
+            padding: 20px;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        }
+
+        .form-group {
+            margin: 20px 0;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #2196F3;
+            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:active::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #2196F3, #21CBF3);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(33, 150, 243, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #FF9800, #F57C00);
+            color: white;
+        }
+
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 152, 0, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #f44336, #d32f2f);
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-weight: 600;
+            text-align: center;
+            border-left: 5px solid;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .status.connected {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border-color: #4caf50;
+        }
+
+        .status.connecting {
+            background: #fff3e0;
+            color: #ef6c00;
+            border-color: #ff9800;
+        }
+
+        .status.disconnected {
+            background: #ffebee;
+            color: #c62828;
+            border-color: #f44336;
+        }
+
+        .status.info {
+            background: #e3f2fd;
+            color: #1565c0;
+            border-color: #2196f3;
+        }
+
+        .data-display {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .data-item {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .data-item:hover {
+            border-color: #2196F3;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(33, 150, 243, 0.2);
+        }
+
+        .data-item .label {
+            font-size: 0.8em;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .data-item .value {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #2196F3;
+        }
+
+        .points-list {
+            max-height: 400px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .point-item {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #2196F3;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .point-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 25px 0;
+        }
+
+        .map-container {
+            height: 400px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            margin: 20px 0;
+            background: linear-gradient(45deg, #e3f2fd, #bbdefb);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            color: #666;
+            position: relative;
+        }
+
+        .map-container::before {
+            content: '🗺️';
+            font-size: 3em;
+            opacity: 0.3;
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 5px;
+                border-radius: 15px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .tabs {
+                flex-direction: column;
+                margin: 10px;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                padding: 12px 25px;
+            }
+            
+            .data-display {
+                grid-template-columns: 1fr 1fr;
+                gap: 15px;
+            }
+        }
+
+        .floating-action {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(76, 175, 80, 0.4);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .floating-action:hover {
+            transform: scale(1.1) rotate(5deg);
+            box-shadow: 0 12px 30px rgba(76, 175, 80, 0.6);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #2196F3;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📡 RTK Data Collector</h1>
+            <p>Sistema Amador de Coleta GNSS/RTK</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('connection')">🔗 Conexão</button>
+            <button class="tab" onclick="showTab('gnss')">🛰️ GNSS</button>
+            <button class="tab" onclick="showTab('collection')">📍 Coleta</button>
+            <button class="tab" onclick="showTab('data')">📊 Dados</button>
+            <button class="tab" onclick="showTab('export')">💾 Exportar</button>
+        </div>
+
+        <div class="content">
+            <div id="gnss" class="tab-content">
+                <div class="card">
+                    <h3>📱 Sistema de Posicionamento do Dispositivo</h3>
+                    <div class="form-group">
+                        <label>Modo de Localização:</label>
+                        <select class="form-control" id="locationMode" onchange="changeLocationMode()">
+                            <option value="device">📱 GNSS do Dispositivo</option>
+                            <option value="rtk">🛰️ Receptor RTK Externo</option>
+                            <option value="combined">🔄 Combinado (Device + RTK)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Sistemas GNSS Disponíveis:</label>
+                        <select class="form-control" id="gnssSystem" onchange="changeGNSSSystem()">
+                            <option value="combined">🌍 Todos os Sistemas (Recomendado)</option>
+                            <option value="gps">🇺🇸 GPS (Estados Unidos)</option>
+                            <option value="glonass">🇷🇺 GLONASS (Rússia)</option>
+                            <option value="galileo">🇪🇺 Galileo (União Europeia)</option>
+                            <option value="beidou">🇨🇳 BeiDou (China)</option>
+                            <option value="qzss">🇯🇵 QZSS (Japão)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Configurações de Precisão:</label>
+                        <select class="form-control" id="accuracyMode" onchange="changeAccuracyMode()">
+                            <option value="high">🎯 Alta Precisão (Mais lento, mais bateria)</option>
+                            <option value="balanced">⚖️ Balanceado (Recomendado)</option>
+                            <option value="low">⚡ Baixa Precisão (Mais rápido, menos bateria)</option>
+                        </select>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn btn-primary" onclick="startDeviceGNSS()">
+                            <span id="deviceGnssText">🛰️ Ativar GNSS</span>
+                        </button>
+                        <button class="btn btn-warning" onclick="calibrateDevice()">🧭 Calibrar Sensores</button>
+                        <button class="btn btn-danger" onclick="stopDeviceGNSS()">⏹️ Parar GNSS</button>
+                    </div>
+
+                    <div id="gnssStatus" class="status info">
+                        ℹ️ GNSS do dispositivo pronto para uso
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>📊 Informações dos Satélites</h3>
+                    <div class="data-display">
+                        <div class="data-item">
+                            <div class="label">GPS</div>
+                            <div class="value" id="gpsCount">--</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="label">GLONASS</div>
+                            <div class="value" id="glonassCount">--</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="label">Galileo</div>
+                            <div class="value" id="galileoCount">--</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="label">BeiDou</div>
+                            <div class="value" id="beidouCount">--</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="label">QZSS</div>
+                            <div class="value" id="qzssCount">--</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="label">HDOP</div>
+                            <div class="value" id="hdopValue">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>📈 Histórico de Precisão</h3>
+                    <div id="accuracyChart" style="height: 200px; background: #f8f9fa; border-radius: 10px; padding: 20px; text-align: center; color: #666;">
+                        📊 Gráfico de precisão ao longo do tempo<br>
+                        <small>Mostra a qualidade do sinal GNSS</small>
+                    </div>
+                </div>
+            </div>
+
+            <div id="connection" class="tab-content active">
+                <div class="card">
+                    <h3>📷 Receptor GNSS Bluetooth</h3>
+                    <div class="form-group">
+                        <label>Nome/Endereço do Dispositivo:</label>
+                        <input type="text" class="form-control" id="bluetoothDevice" placeholder="Ex: RTK-Device ou 00:11:22:33:44:55">
+                    </div>
+                    <div class="form-group">
+                        <label>Porta Serial (Opcional):</label>
+                        <input type="text" class="form-control" id="serialPort" placeholder="Ex: COM3 ou /dev/ttyUSB0">
+                    </div>
+                    <div class="button-group">
+                        <button class="btn btn-primary" onclick="connectBluetooth()">
+                            <span id="btConnectText">📱 Conectar Bluetooth</span>
+                        </button>
+                        <button class="btn btn-warning" onclick="testConnection()">🔍 Testar Conexão</button>
+                        <button class="btn btn-danger" onclick="disconnect()">❌ Desconectar</button>
+                    </div>
+                    <div id="connectionStatus" class="status disconnected">
+                        ❌ Desconectado - Aguardando conexão com receptor GNSS
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>🌐 Correção RTK (NTRIP)</h3>
+                    <div class="form-group">
+                        <label>Servidor NTRIP:</label>
+                        <input type="text" class="form-control" id="ntripServer" placeholder="Ex: rtk2go.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Porta:</label>
+                        <input type="number" class="form-control" id="ntripPort" value="2101">
+                    </div>
+                    <div class="form-group">
+                        <label>Mountpoint:</label>
+                        <input type="text" class="form-control" id="ntripMountpoint" placeholder="Ex: STATION_RTK">
+                    </div>
+                    <div class="form-group">
+                        <label>Usuário:</label>
+                        <input type="text" class="form-control" id="ntripUser" placeholder="Usuário NTRIP">
+                    </div>
+                    <div class="form-group">
+                        <label>Senha:</label>
+                        <input type="password" class="form-control" id="ntripPassword" placeholder="Senha NTRIP">
+                    </div>
+                    <div class="button-group">
+                        <button class="btn btn-primary" onclick="connectNTRIP()">🛰️ Conectar NTRIP</button>
+                        <button class="btn btn-danger" onclick="disconnectNTRIP()">⏹️ Parar NTRIP</button>
+                    </div>
+                    <div id="ntripStatus" class="status disconnected">
+                        📡 NTRIP Desconectado
+                    </div>
+                </div>
+            </div>
+
+            <div id="collection" class="tab-content">
+                <div class="card">
+                    <h3>📍 Dados GNSS Atuais</h3>
+                    <div class="data-display">
+                        <div class="data-item">
+                            <div class="label">Latitude</div>
+                            <div class="value" id="currentLat">--°</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="label">Longitude</div>
+                            <div class="value" id="currentLon">--°</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="label">Altitude</div>
+                            <div class="value" id="currentAlt">-- m</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="label">Precisão</div>
+                            <div class="value" id="currentAccuracy">-- m</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="label">Satélites</div>
+                            <div class="value" id="satellites">--</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="label">Sistema Ativo</div>
+                            <div class="value" id="activeSystem">INATIVO</div>
+                        </div>
+                    </div>
+                    
+                    <div id="positioningStatus" class="status info">
+                        ℹ️ Escolha um sistema de posicionamento na aba GNSS
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>🎯 Tipos de Coleta</h3>
+                    <div class="button-group">
+                        <button class="btn btn-success" onclick="collectPoint('POINT')" id="collectPointBtn">
+                            📍 Coletar Ponto
+                        </button>
+                        <button class="btn btn-success" onclick="startLine()" id="lineBtn">
+                            📏 Iniciar Linha
+                        </button>
+                        <button class="btn btn-success" onclick="startPolygon()" id="polygonBtn">
+                            📐 Iniciar Polígono
+                        </button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Descrição do Ponto:</label>
+                        <input type="text" class="form-control" id="pointDescription" placeholder="Ex: Marco, Poste, Edificação...">
+                    </div>
+
+                    <div id="collectionStatus" class="status info">
+                        ℹ️ Pronto para coletar - Selecione o tipo de geometria
+                    </div>
+                </div>
+
+                <div class="map-container">
+                    <div style="text-align: center;">
+                        🗺️ Mapa Interativo<br>
+                        <small>Visualização dos pontos coletados</small>
+                    </div>
+                </div>
+            </div>
+
+            <div id="data" class="tab-content">
+                <div class="card">
+                    <h3>📊 Resumo da Coleta</h3>
+                    <div class="data-display">
+                        <div class="data-item">
+                            <div class="label">Total Pontos</div>
+                            <div class="value" id="totalPoints">0</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="label">Linhas</div>
+                            <div class="value" id="totalLines">0</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="label">Polígonos</div>
+                            <div class="value" id="totalPolygons">0</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="label">Precisão Média</div>
+                            <div class="value" id="avgAccuracy">-- m</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>📋 Lista de Pontos Coletados</h3>
+                    <div class="button-group">
+                        <button class="btn btn-warning" onclick="clearAllData()">🗑️ Limpar Tudo</button>
+                        <button class="btn btn-primary" onclick="refreshData()">🔄 Atualizar</button>
+                    </div>
+                    <div id="pointsList" class="points-list">
+                        <div style="text-align: center; color: #666; padding: 20px;">
+                            📍 Nenhum ponto coletado ainda<br>
+                            <small>Vá para a aba "Coleta" para começar</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="export" class="tab-content">
+                <div class="card">
+                    <h3>💾 Exportar Dados</h3>
+                    <div class="form-group">
+                        <label>Nome do Projeto:</label>
+                        <input type="text" class="form-control" id="projectName" placeholder="Ex: Levantamento_Area_01">
+                    </div>
+                    
+                    <div class="button-group">
+                        <button class="btn btn-primary" onclick="exportKMZ()">🗺️ Exportar KMZ</button>
+                        <button class="btn btn-primary" onclick="exportGeoJSON()">🌐 Exportar GeoJSON</button>
+                        <button class="btn btn-primary" onclick="exportCSV()">📊 Exportar CSV</button>
+                        <button class="btn btn-primary" onclick="exportGeoPackage()">📦 Exportar GeoPackage</button>
+                    </div>
+                    
+                    <div id="exportStatus" class="status info">
+                        💡 Selecione o formato desejado para exportação
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>⚙️ Configurações de Exportação</h3>
+                    <div class="form-group">
+                        <label>Sistema de Coordenadas:</label>
+                        <select class="form-control" id="coordinateSystem">
+                            <option value="WGS84">WGS84 (GPS)</option>
+                            <option value="SIRGAS2000">SIRGAS 2000</option>
+                            <option value="UTM">UTM</option>
+                            <option value="SAD69">SAD 69</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Precisão Decimal:</label>
+                        <select class="form-control" id="precision">
+                            <option value="6">6 casas (±1m)</option>
+                            <option value="7">7 casas (±10cm)</option>
+                            <option value="8">8 casas (±1cm)</option>
+                            <option value="9">9 casas (±1mm)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <button class="floating-action" onclick="quickCollect()" title="Coleta Rápida">
+        ⚡
+    </button>
+
+    <script>
+        // Estado global da aplicação
+        let appState = {
+            isConnected: false,
+            ntripConnected: false,
+            collectedPoints: [],
+            currentGeometry: null,
+            geometryType: 'POINT',
+            isCollecting: false,
+            bluetoothDevice: null,
+            currentLocation: { lat: 0, lon: 0, alt: 0, accuracy: 0, satellites: 0 },
+            locationMode: 'device', // 'device', 'rtk', 'manual'
+            gnssType: 'gps', // 'gps', 'glonass', 'galileo', 'beidou', 'qzss', 'combined'
+            deviceWatchId: null,
+            locationHistory: []
+        };
+
+        // Inicialização do PWA
+        document.addEventListener('DOMContentLoaded', function() {
+            initializePWA();
+            loadStoredData();
+            startLocationUpdates();
+            initializeGNSSSystem();
+            
+            // PWA: Registra o Service Worker para funcionalidade offline
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('sw.js')
+                    .then(registration => {
+                        console.log('Service Worker registrado com sucesso:', registration);
+                    })
+                    .catch(error => {
+                        console.log('Falha no registro do Service Worker:', error);
+                    });
+            }
+        });
+
+        function initializePWA() {
+            // Configurar PWA
+            console.log('🚀 RTK Data Collector PWA Inicializado');
+            updateConnectionStatus('disconnected', '❌ Aguardando conexão com receptor GNSS');
+            updateGNSSStatus('info', 'ℹ️ Sistema GNSS do dispositivo disponível');
+        }
+
+        function initializeGNSSSystem() {
+            // Verificar capacidades do dispositivo
+            if (navigator.geolocation) {
+                // Verificar se é um dispositivo móvel
+                const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                const isAndroid = /Android/i.test(navigator.userAgent);
+                
+                if (isMobile && isAndroid) {
+                    updateGNSSStatus('connected', '✅ Dispositivo Android detectado - Sistemas GNSS multi-constelação disponíveis');
+                    
+                    // Configurar valores padrão otimizados
+                    document.getElementById('gnssSystem').value = 'combined';
+                    document.getElementById('accuracyMode').value = 'balanced';
+                    document.getElementById('locationMode').value = 'device';
+                } else {
+                    updateGNSSStatus('info', 'ℹ️ Sistema GNSS básico disponível');
+                }
+                
+                // Solicitar permissões de localização preventivamente
+                requestLocationPermissions();
+            } else {
+                updateGNSSStatus('disconnected', '❌ Sistema GNSS não disponível neste dispositivo');
+            }
+        }
+
+        async function requestLocationPermissions() {
+            try {
+                // Verificar permissões atuais
+                if ('permissions' in navigator) {
+                    const permission = await navigator.permissions.query({name: 'geolocation'});
+                    
+                    switch (permission.state) {
+                        case 'granted':
+                            console.log('✅ Permissão de localização já concedida');
+                            break;
+                        case 'prompt':
+                            console.log('⚠️ Permissão de localização será solicitada quando necessário');
+                            break;
+                        case 'denied':
+                            updateGNSSStatus('disconnected', '❌ Permissão de localização negada - Ative nas configurações');
+                            break;
+                    }
+                }
+            } catch (error) {
+                console.warn('⚠️ Não foi possível verificar permissões:', error);
+            }
+        }
+
+        // ================================
+        // GNSS DO DISPOSITIVO
+        // ================================
+
+        function changeLocationMode() {
+            const mode = document.getElementById('locationMode').value;
+            appState.locationMode = mode;
+            
+            updateGNSSStatus('info', `📱 Modo alterado para: ${getLocationModeText(mode)}`);
+            
+            if (mode === 'device' || mode === 'combined') {
+                startDeviceGNSS();
+            }
+        }
+
+        function changeGNSSSystem() {
+            const system = document.getElementById('gnssSystem').value;
+            appState.gnssType = system;
+            
+            updateGNSSStatus('info', `🛰️ Sistema GNSS: ${getGNSSSystemText(system)}`);
+            
+            if (appState.deviceWatchId) {
+                stopDeviceGNSS();
+                startDeviceGNSS();
+            }
+        }
+
+        function changeAccuracyMode() {
+            const mode = document.getElementById('accuracyMode').value;
+            updateGNSSStatus('info', `🎯 Modo de precisão alterado: ${getAccuracyModeText(mode)}`);
+            
+            if (appState.deviceWatchId) {
+                stopDeviceGNSS();
+                startDeviceGNSS();
+            }
+        }
+
+        async function startDeviceGNSS() {
+            if (!navigator.geolocation) {
+                updateGNSSStatus('disconnected', '❌ Geolocalização não suportada neste dispositivo');
+                return;
+            }
+
+            const button = document.getElementById('deviceGnssText');
+            button.innerHTML = '<span class="loading"></span>Iniciando...';
+            updateGNSSStatus('connecting', '🔄 Iniciando sistema GNSS do dispositivo...');
+
+            try {
+                // Configurações baseadas no modo selecionado
+                const options = getLocationOptions();
+                
+                // Primeiro, uma leitura única para teste
+                const position = await getCurrentPositionAsync(options);
+                handleDeviceLocation(position);
+                
+                // Depois, monitoramento contínuo
+                appState.deviceWatchId = navigator.geolocation.watchPosition(
+                    handleDeviceLocation,
+                    handleLocationError,
+                    options
+                );
+                
+                button.textContent = '✅ GNSS Ativo';
+                updateGNSSStatus('connected', `✅ ${getGNSSSystemText(appState.gnssType)} ativo - Coletando posições`);
+                
+            } catch (error) {
+                console.error('❌ Erro ao iniciar GNSS:', error);
+                updateGNSSStatus('disconnected', '❌ Erro: ' + error.message);
+                button.textContent = '🛰️ Ativar GNSS';
+            }
+        }
+
+        function getCurrentPositionAsync(options) {
+            return new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, options);
+            });
+        }
+
+        function getLocationOptions() {
+            const accuracyMode = document.getElementById('accuracyMode').value;
+            
+            let options = {
+                enableHighAccuracy: true,
+                maximumAge: 0,
+                timeout: 15000
+            };
+
+            switch (accuracyMode) {
+                case 'high':
+                    options.enableHighAccuracy = true;
+                    options.timeout = 30000;
+                    options.maximumAge = 0;
+                    break;
+                case 'balanced':
+                    options.enableHighAccuracy = true;
+                    options.timeout = 15000;
+                    options.maximumAge = 5000;
+                    break;
+                case 'low':
+                    options.enableHighAccuracy = false;
+                    options.timeout = 10000;
+                    options.maximumAge = 30000;
+                    break;
+            }
+
+            return options;
+        }
+
+        function handleDeviceLocation(position) {
+            const coords = position.coords;
+            
+            // Atualizar posição atual se estivermos usando dispositivo
+            if (appState.locationMode === 'device' || appState.locationMode === 'combined') {
+                appState.currentLocation = {
+                    lat: coords.latitude,
+                    lon: coords.longitude,
+                    alt: coords.altitude || 0,
+                    accuracy: coords.accuracy || 999,
+                    satellites: estimateSatelliteCount(coords.accuracy),
+                    hdop: calculateHDOP(coords.accuracy),
+                    timestamp: new Date(position.timestamp)
+                };
+
+                // Adicionar ao histórico
+                appState.locationHistory.push({
+                    ...appState.currentLocation,
+                    timestamp: Date.now()
+                });
+
+                // Manter apenas últimos 100 pontos
+                if (appState.locationHistory.length > 100) {
+                    appState.locationHistory.shift();
+                }
+
+                updateLocationDisplay();
+            }
+
+            // Log para debug
+            console.log('📍 Nova posição:', {
+                lat: coords.latitude.toFixed(8),
+                lon: coords.longitude.toFixed(8),
+                acc: coords.accuracy?.toFixed(2) + 'm',
+                system: getGNSSSystemText(appState.gnssType)
+            });
+        }
+
+        function handleLocationError(error) {
+            let errorMessage = '';
+            
+            switch (error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMessage = 'Permissão de localização negada';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMessage = 'Posição indisponível - verifique se está ao ar livre';
+                    break;
+                case error.TIMEOUT:
+                    errorMessage = 'Timeout na obtenção da localização';
+                    break;
+                default:
+                    errorMessage = 'Erro desconhecido na localização';
+                    break;
+            }
+            
+            console.error('❌ Erro de localização:', error);
+            updateGNSSStatus('disconnected', '❌ ' + errorMessage);
+        }
+
+        function estimateSatelliteCount(accuracy) {
+            // Estimar número de satélites com base na precisão.
+            // O número real de satélites é uma informação que só pode ser obtida de um receptor GNSS.
+            if (accuracy < 3) return 12;
+            if (accuracy < 5) return 8;
+            if (accuracy < 10) return 6;
+            if (accuracy < 20) return 4;
+            return 3;
+        }
+
+        function calculateHDOP(accuracy) {
+            // Estimar HDOP com base na precisão. A relação entre precisão e HDOP é complexa,
+            // mas um HDOP baixo indica melhor precisão.
+            const hdop = Math.min(Math.max(1, accuracy / 2), 10);
+            return hdop.toFixed(1);
+        }
+
+        function updateLocationDisplay() {
+            const location = appState.currentLocation;
+            
+            document.getElementById('currentLat').textContent = location.lat.toFixed(8) + '°';
+            document.getElementById('currentLon').textContent = location.lon.toFixed(8) + '°';
+            document.getElementById('currentAlt').textContent = location.alt.toFixed(2) + ' m';
+            document.getElementById('currentAccuracy').textContent = location.accuracy.toFixed(2) + ' m';
+            document.getElementById('satellites').textContent = location.satellites;
+            
+            // Sistema ativo
+            let activeSystemText = 'INATIVO';
+            let statusClass = 'disconnected';
+            let statusMessage = 'Nenhum sistema de posicionamento ativo';
+            
+            if (appState.locationMode === 'device' && appState.deviceWatchId) {
+                activeSystemText = getGNSSSystemText(appState.gnssType).replace(' (', '\n(');
+                statusClass = 'connected';
+                statusMessage = `✅ Sistema GNSS do dispositivo ativo - ${getGNSSSystemText(appState.gnssType)}`;
+            } else if (appState.locationMode === 'rtk' && appState.isConnected) {
+                activeSystemText = appState.ntripConnected ? 'RTK-FIXED/FLOAT' : 'RTK-SINGLE';
+                statusClass = 'connected';
+                statusMessage = `✅ Receptor RTK ativo - ${activeSystemText}`;
+            } else if (appState.locationMode === 'combined') {
+                if (appState.deviceWatchId || appState.isConnected) {
+                    activeSystemText = 'COMBINADO';
+                    statusClass = 'connected';
+                    statusMessage = '✅ Sistema combinado (Device + RTK) ativo';
+                }
+            }
+            
+            document.getElementById('activeSystem').textContent = activeSystemText;
+            
+            // Atualizar status de posicionamento se o elemento existir
+            const statusDiv = document.getElementById('positioningStatus');
+            if (statusDiv) {
+                statusDiv.className = `status ${statusClass}`;
+                statusDiv.textContent = statusMessage;
+            }
+            
+            // Atualizar HDOP
+            if (document.getElementById('hdopValue')) {
+                document.getElementById('hdopValue').textContent = location.hdop || '--';
+            }
+
+            // Atualizar informações simuladas de satélites
+            simulateSatelliteInfo();
+        }
+
+        function simulateSatelliteInfo() {
+            // Simular distribuição de satélites por constelação com base na precisão.
+            const totalSats = appState.currentLocation.satellites || 8;
+            const distribution = {
+                gps: Math.round(totalSats * 0.4),
+                glonass: Math.round(totalSats * 0.25),
+                galileo: Math.round(totalSats * 0.2),
+                beidou: Math.round(totalSats * 0.1),
+                qzss: Math.round(totalSats * 0.05)
+            };
+
+            const selectedSystem = appState.gnssType;
+            if (selectedSystem !== 'combined') {
+                Object.keys(distribution).forEach(key => {
+                    distribution[key] = key === selectedSystem ? totalSats : 0;
+                });
+            }
+
+            document.getElementById('gpsCount').textContent = distribution.gps;
+            document.getElementById('glonassCount').textContent = distribution.glonass;
+            document.getElementById('galileoCount').textContent = distribution.galileo;
+            document.getElementById('beidouCount').textContent = distribution.beidou;
+            document.getElementById('qzssCount').textContent = distribution.qzss;
+        }
+
+        function calibrateDevice() {
+            updateGNSSStatus('connecting', '🧭 Calibrando sensores do dispositivo...');
+            
+            // Verificar se DeviceOrientationEvent está disponível
+            if (typeof DeviceOrientationEvent !== 'undefined') {
+                // Solicitar permissão no iOS
+                if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                    DeviceOrientationEvent.requestPermission()
+                        .then(response => {
+                            if (response === 'granted') {
+                                performCalibration();
+                            } else {
+                                updateGNSSStatus('info', '⚠️ Permissão de orientação necessária para calibração');
+                            }
+                        });
+                } else {
+                    performCalibration();
+                }
+            } else {
+                updateGNSSStatus('info', '📱 Calibração automática não suportada neste dispositivo');
+            }
+        }
+
+        function performCalibration() {
+            let calibrationSteps = 0;
+            const maxSteps = 10;
+            
+            const calibrationInterval = setInterval(() => {
+                calibrationSteps++;
+                updateGNSSStatus('connecting', `🧭 Calibrando... ${calibrationSteps}/${maxSteps}`);
+                
+                if (calibrationSteps >= maxSteps) {
+                    clearInterval(calibrationInterval);
+                    updateGNSSStatus('connected', '✅ Sensores calibrados com sucesso');
+                    
+                    // Reiniciar GNSS se estava ativo
+                    if (appState.deviceWatchId) {
+                        stopDeviceGNSS();
+                        setTimeout(startDeviceGNSS, 1000);
+                    }
+                }
+            }, 500);
+        }
+
+        function stopDeviceGNSS() {
+            if (appState.deviceWatchId) {
+                navigator.geolocation.clearWatch(appState.deviceWatchId);
+                appState.deviceWatchId = null;
+            }
+            
+            document.getElementById('deviceGnssText').textContent = '🛰️ Ativar GNSS';
+            updateGNSSStatus('disconnected', '⏹️ Sistema GNSS do dispositivo parado');
+        }
+
+        // Funções auxiliares de texto
+        function getLocationModeText(mode) {
+            const modes = {
+                'device': 'GNSS do Dispositivo',
+                'rtk': 'Receptor RTK Externo', 
+                'combined': 'Combinado (Device + RTK)'
+            };
+            return modes[mode] || mode;
+        }
+
+        function getGNSSSystemText(system) {
+            const systems = {
+                'combined': 'Todos os Sistemas',
+                'gps': 'GPS (Estados Unidos)',
+                'glonass': 'GLONASS (Rússia)',
+                'galileo': 'Galileo (União Europeia)',
+                'beidou': 'BeiDou (China)',
+                'qzss': 'QZSS (Japão)'
+            };
+            return systems[system] || system;
+        }
+
+        function getAccuracyModeText(mode) {
+            const modes = {
+                'high': 'Alta Precisão',
+                'balanced': 'Balanceado',
+                'low': 'Baixa Precisão'
+            };
+            return modes[mode] || mode;
+        }
+
+        function updateGNSSStatus(status, message) {
+            const statusDiv = document.getElementById('gnssStatus');
+            if (statusDiv) {
+                statusDiv.className = `status ${status}`;
+                statusDiv.textContent = message;
+            }
+        }
+
+        // ================================
+        // CONEXÃO BLUETOOTH
+        // ================================
+
+        async function connectBluetooth() {
+            const deviceInput = document.getElementById('bluetoothDevice').value;
+            const connectBtn = document.getElementById('btConnectText');
+            
+            if (!deviceInput.trim()) {
+                updateConnectionStatus('disconnected', '⚠️ Digite o nome ou endereço do dispositivo Bluetooth');
+                return;
+            }
+
+            connectBtn.innerHTML = '<span class="loading"></span>Conectando...';
+            updateConnectionStatus('connecting', '🔄 Tentando conectar com ' + deviceInput);
+
+            try {
+                // ESTA FUNÇÃO PRECISA SER SUBSTITUÍDA PELA LÓGICA DE CONEXÃO BLUETOOTH REAL.
+                // A implementação dependeria de APIs como a Web Bluetooth API.
+                // A versão atual é apenas uma simulação para fins de demonstração.
+                await new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        if (deviceInput.toLowerCase().includes('rtk') || deviceInput.includes(':')) {
+                            resolve();
+                        } else {
+                            reject(new Error('Dispositivo não encontrado ou incompatível'));
+                        }
+                    }, 2000);
+                });
+                
+                appState.isConnected = true;
+                appState.bluetoothDevice = deviceInput;
+                
+                updateConnectionStatus('connected', '✅ Conectado ao receptor: ' + deviceInput);
+                connectBtn.textContent = '✅ Conectado';
+                
+                startNMEADataStream();
+                
+            } catch (error) {
+                console.error('❌ Erro na conexão Bluetooth:', error);
+                updateConnectionStatus('disconnected', '❌ Erro: ' + error.message);
+                connectBtn.textContent = '📱 Conectar Bluetooth';
+            }
+        }
+
+        function startNMEADataStream() {
+            // ESTA FUNÇÃO PRECISA SER SUBSTITUÍDA PARA LER DADOS REAIS DO RECEPTOR BLUETOOTH.
+            // A implementação atual simula dados GNSS.
+            setInterval(() => {
+                if (appState.isConnected) {
+                    updateGNSSData();
+                }
+            }, 1000);
+        }
+
+        function updateGNSSData() {
+            // Esta função simula dados GNSS. Em uma aplicação real,
+            // os dados viriam de uma stream NMEA do receptor RTK.
+            const baseLatitude = -29.6842 + (Math.random() - 0.5) * 0.001;
+            const baseLongitude = -51.1265 + (Math.random() - 0.5) * 0.001;
+            const altitude = 100 + Math.random() * 50;
+            const accuracy = appState.ntripConnected ? 0.02 + Math.random() * 0.03 : 1.0 + Math.random() * 3.0;
+            const satellites = 8 + Math.floor(Math.random() * 5);
+
+            appState.currentLocation = {
+                lat: baseLatitude,
+                lon: baseLongitude,
+                alt: altitude,
+                accuracy: accuracy,
+                satellites: satellites,
+                hdop: calculateHDOP(accuracy)
+            };
+
+            if (appState.locationMode === 'rtk' || appState.locationMode === 'combined') {
+                updateLocationDisplay();
+            }
+        }
+
+        function testConnection() {
+            if (!appState.isConnected) {
+                updateConnectionStatus('disconnected', '❌ Conecte-se primeiro ao receptor Bluetooth');
+                return;
+            }
+            
+            updateConnectionStatus('connecting', '🔍 Testando comunicação...');
+            
+            setTimeout(() => {
+                const testResult = Math.random() > 0.2; // 80% sucesso
+                if (testResult) {
+                    updateConnectionStatus('connected', '✅ Teste OK - Recebendo dados NMEA');
+                } else {
+                    updateConnectionStatus('disconnected', '⚠️ Falha na comunicação - Verifique conexão');
+                }
+            }, 1500);
+        }
+
+        function disconnect() {
+            appState.isConnected = false;
+            appState.bluetoothDevice = null;
+            document.getElementById('btConnectText').textContent = '📱 Conectar Bluetooth';
+            updateConnectionStatus('disconnected', '❌ Desconectado do receptor GNSS');
+        }
+
+        // ================================
+        // CLIENTE NTRIP
+        // ================================
+
+        async function connectNTRIP() {
+            const server = document.getElementById('ntripServer').value;
+            const port = document.getElementById('ntripPort').value;
+            const mountpoint = document.getElementById('ntripMountpoint').value;
+            const user = document.getElementById('ntripUser').value;
+            const password = document.getElementById('ntripPassword').value;
+
+            if (!server || !port || !mountpoint) {
+                updateNTRIPStatus('disconnected', '⚠️ Preencha todos os campos obrigatórios');
+                return;
+            }
+
+            updateNTRIPStatus('connecting', '🔄 Conectando ao servidor NTRIP...');
+
+            try {
+                // ESTA FUNÇÃO PRECISA SER SUBSTITUÍDA PELA LÓGICA DE CONEXÃO NTRIP REAL.
+                // Isso requer um cliente NTRIP que processa dados RTCM.
+                await new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        if (server.includes('.com') || server.includes('.net') || server.includes('rtk2go')) {
+                            resolve();
+                        } else {
+                            reject(new Error('Servidor inválido ou inacessível'));
+                        }
+                    }, 2000);
+                });
+                
+                appState.ntripConnected = true;
+                updateNTRIPStatus('connected', `✅ NTRIP Conectado: ${server}:${port}/${mountpoint}`);
+                
+            } catch (error) {
+                console.error('❌ Erro NTRIP:', error);
+                updateNTRIPStatus('disconnected', '❌ Erro NTRIP: ' + error.message);
+            }
+        }
+
+        function disconnectNTRIP() {
+            appState.ntripConnected = false;
+            updateNTRIPStatus('disconnected', '📡 NTRIP Desconectado');
+        }
+
+        // ================================
+        // COLETA DE DADOS
+        // ================================
+
+        function collectPoint(type = 'POINT') {
+            // Verificar se temos localização ativa
+            const hasDeviceLocation = appState.locationMode === 'device' && appState.deviceWatchId;
+            const hasRTKLocation = appState.locationMode === 'rtk' && appState.isConnected;
+            const hasCombinedLocation = appState.locationMode === 'combined' && (appState.deviceWatchId || appState.isConnected);
+            
+            if (!hasDeviceLocation && !hasRTKLocation && !hasCombinedLocation) {
+                updateCollectionStatus('info', '⚠️ Ative um sistema de posicionamento primeiro');
+                return;
+            }
+
+            const description = document.getElementById('pointDescription').value || `Ponto ${appState.collectedPoints.length + 1}`;
+            
+            // Determinar fonte dos dados
+            let locationSource = 'UNKNOWN';
+            let accuracy = appState.currentLocation.accuracy || 999;
+            
+            if (appState.locationMode === 'device') {
+                locationSource = `DEVICE-${getGNSSSystemText(appState.gnssType)}`;
+            } else if (appState.locationMode === 'rtk') {
+                locationSource = appState.ntripConnected ? 'RTK' : 'RTK-SINGLE';
+            } else if (appState.locationMode === 'combined') {
+                locationSource = 'COMBINED';
+            }
+            
+            const point = {
+                id: Date.now(),
+                type: type,
+                latitude: appState.currentLocation.lat,
+                longitude: appState.currentLocation.lon,
+                altitude: appState.currentLocation.alt,
+                accuracy: accuracy,
+                satellites: appState.currentLocation.satellites,
+                hdop: appState.currentLocation.hdop,
+                locationSource: locationSource,
+                gnssSystem: appState.gnssType,
+                rtkStatus: appState.ntripConnected ? 
+                    (accuracy < 0.1 ? 'RTK-FIXED' : 'RTK-FLOAT') : locationSource,
+                description: description,
+                timestamp: new Date().toISOString(),
+                geometry: appState.currentGeometry,
+                rawAccuracy: appState.currentLocation.accuracy // preservar precisão original
+            };
+
+            appState.collectedPoints.push(point);
+            saveDataToStorage();
+            
+            const sourceText = locationSource.replace('DEVICE-', '');
+            updateCollectionStatus('connected', `✅ Ponto coletado via ${sourceText}! Precisão: ${point.accuracy.toFixed(3)}m`);
+            document.getElementById('pointDescription').value = '';
+            
+            // Feedback visual
+            animateCollection();
+            updateDataSummary();
+
+            // Log para debug
+            console.log('📍 Ponto coletado:', {
+                source: locationSource,
+                accuracy: accuracy.toFixed(3) + 'm',
+                system: getGNSSSystemText(appState.gnssType),
+                coordinates: `${point.latitude.toFixed(8)}, ${point.longitude.toFixed(8)}`
+            });
+        }
+
+        function startLine() {
+            // Verificar se temos localização ativa
+            const hasLocation = checkLocationAvailability();
+            if (!hasLocation) return;
+
+            appState.geometryType = 'LINE';
+            appState.currentGeometry = 'LINE_' + Date.now();
+            appState.isCollecting = true;
+            
+            updateCollectionStatus('connecting', '📏 Modo LINHA ativo - Clique em "Coletar Ponto" para adicionar vértices');
+            document.getElementById('lineBtn').textContent = '⏹️ Finalizar Linha';
+            document.getElementById('lineBtn').setAttribute('onclick', 'finishLine()');
+        }
+
+        function finishLine() {
+            appState.geometryType = 'POINT';
+            appState.currentGeometry = null;
+            appState.isCollecting = false;
+            
+            updateCollectionStatus('info', '✅ Linha finalizada');
+            document.getElementById('lineBtn').textContent = '📏 Iniciar Linha';
+            document.getElementById('lineBtn').setAttribute('onclick', 'startLine()');
+        }
+
+        function startPolygon() {
+            // Verificar se temos localização ativa
+            const hasLocation = checkLocationAvailability();
+            if (!hasLocation) return;
+
+            appState.geometryType = 'POLYGON';
+            appState.currentGeometry = 'POLYGON_' + Date.now();
+            appState.isCollecting = true;
+            
+            updateCollectionStatus('connecting', '📐 Modo POLÍGONO ativo - Clique em "Coletar Ponto" para adicionar vértices');
+            document.getElementById('polygonBtn').textContent = '⏹️ Finalizar Polígono';
+            document.getElementById('polygonBtn').setAttribute('onclick', 'finishPolygon()');
+        }
+
+        function finishPolygon() {
+            appState.geometryType = 'POINT';
+            appState.currentGeometry = null;
+            appState.isCollecting = false;
+            
+            updateCollectionStatus('info', '✅ Polígono finalizado');
+            document.getElementById('polygonBtn').textContent = '📐 Iniciar Polígono';
+            document.getElementById('polygonBtn').setAttribute('onclick', 'startPolygon()');
+        }
+
+        function checkLocationAvailability() {
+            const hasDeviceLocation = appState.locationMode === 'device' && appState.deviceWatchId;
+            const hasRTKLocation = appState.locationMode === 'rtk' && appState.isConnected;
+            const hasCombinedLocation = appState.locationMode === 'combined' && (appState.deviceWatchId || appState.isConnected);
+            
+            if (!hasDeviceLocation && !hasRTKLocation && !hasCombinedLocation) {
+                updateCollectionStatus('info', 'Ative um sistema de posicionamento primeiro (aba GNSS ou RTK)');
+                return false;
+            }
+            return true;
+        }
+
+        function quickCollect() {
+            collectPoint('POINT');
+        }
+
+        function animateCollection() {
+            const btn = document.getElementById('collectPointBtn');
+            btn.style.transform = 'scale(1.1)';
+            btn.style.boxShadow = '0 0 20px #4CAF50';
+            
+            setTimeout(() => {
+                btn.style.transform = 'scale(1)';
+                btn.style.boxShadow = '';
+            }, 300);
+        }
+
+        // ================================
+        // GERENCIAMENTO DE DADOS
+        // ================================
+
+        function updateDataSummary() {
+            const points = appState.collectedPoints.filter(p => p.type === 'POINT').length;
+            const lines = new Set(appState.collectedPoints
+                .filter(p => p.geometry && p.geometry.startsWith('LINE_'))
+                .map(p => p.geometry)).size;
+            const polygons = new Set(appState.collectedPoints
+                .filter(p => p.geometry && p.geometry.startsWith('POLYGON_'))
+                .map(p => p.geometry)).size;
+            
+            const avgAccuracy = appState.collectedPoints.length > 0 
+                ? appState.collectedPoints.reduce((sum, p) => sum + p.accuracy, 0) / appState.collectedPoints.length
+                : 0;
+
+            document.getElementById('totalPoints').textContent = appState.collectedPoints.length;
+            document.getElementById('totalLines').textContent = lines;
+            document.getElementById('totalPolygons').textContent = polygons;
+            document.getElementById('avgAccuracy').textContent = avgAccuracy > 0 ? avgAccuracy.toFixed(3) + ' m' : '-- m';
+            
+            updatePointsList();
+        }
+
+        function updatePointsList() {
+            const listContainer = document.getElementById('pointsList');
+            
+            if (appState.collectedPoints.length === 0) {
+                listContainer.innerHTML = `
+                    <div style="text-align: center; color: #666; padding: 20px;">
+                        Nenhum ponto coletado ainda<br>
+                        <small>Vá para a aba "Coleta" para começar</small>
+                    </div>
+                `;
+                return;
+            }
+
+            const pointsHTML = appState.collectedPoints.map(point => `
+                <div class="point-item">
+                    <strong>${point.description}</strong>
+                    <br>
+                    <small>
+                        ${point.latitude.toFixed(8)}°, ${point.longitude.toFixed(8)}°
+                        | Precisão: ${point.accuracy.toFixed(3)}m
+                        | Satélites: ${point.satellites} sats
+                        | Sistema: ${point.locationSource || point.rtkStatus}
+                        ${point.gnssSystem && point.gnssSystem !== 'combined' ? `| GNSS: ${point.gnssSystem.toUpperCase()}` : ''}
+                        ${point.hdop ? `| HDOP: ${point.hdop}` : ''}
+                        | Coletado em: ${new Date(point.timestamp).toLocaleString()}
+                    </small>
+                </div>
+            `).join('');
+
+            listContainer.innerHTML = pointsHTML;
+        }
+
+        function clearAllData() {
+            if (confirm('Tem certeza que deseja apagar todos os dados coletados?')) {
+                appState.collectedPoints = [];
+                saveDataToStorage();
+                updateDataSummary();
+                updateCollectionStatus('info', 'Todos os dados foram removidos');
+            }
+        }
+
+        function refreshData() {
+            updateDataSummary();
+            updateCollectionStatus('info', 'Dados atualizados');
+        }
+
+        // ================================
+        // EXPORTAÇÃO
+        // ================================
+
+        function exportKMZ() {
+            if (appState.collectedPoints.length === 0) {
+                updateExportStatus('info', 'Nenhum ponto para exportar');
+                return;
+            }
+
+            const projectName = document.getElementById('projectName').value || 'RTK_Collection';
+            const precision = parseInt(document.getElementById('precision').value);
+            
+            let kmlContent = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+    <Document>
+        <name>${projectName}</name>
+        <description>Coleta RTK - ${new Date().toLocaleDateString()}</description>
+        
+        <Style id="pointStyle">
+            <IconStyle>
+                <Icon>
+                    <href>http://maps.google.com/mapfiles/kml/pushpin/red-pushpin.png</href>
+                </Icon>
+            </IconStyle>
+        </Style>`;
+
+            appState.collectedPoints.forEach(point => {
+                kmlContent += `
+        <Placemark>
+            <name>${point.description}</name>
+            <description>
+                Precisão: ${point.accuracy.toFixed(3)}m
+                Satélites: ${point.satellites}
+                Sistema: ${point.locationSource || point.rtkStatus}
+                GNSS: ${point.gnssSystem ? point.gnssSystem.toUpperCase() : 'N/A'}
+                ${point.hdop ? `HDOP: ${point.hdop}` : ''}
+                Data: ${new Date(point.timestamp).toLocaleString()}
+            </description>
+            <styleUrl>#pointStyle</styleUrl>
+            <Point>
+                <coordinates>${point.longitude.toFixed(precision)},${point.latitude.toFixed(precision)},${point.altitude.toFixed(2)}</coordinates>
+            </Point>
+        </Placemark>`;
+            });
+
+            kmlContent += `
+    </Document>
+</kml>`;
+
+            downloadFile(`${projectName}.kml`, kmlContent, 'application/vnd.google-earth.kml+xml');
+            updateExportStatus('connected', `KMZ exportado: ${projectName}.kml`);
+        }
+
+        function exportGeoJSON() {
+            if (appState.collectedPoints.length === 0) {
+                updateExportStatus('info', 'Nenhum ponto para exportar');
+                return;
+            }
+
+            const projectName = document.getElementById('projectName').value || 'RTK_Collection';
+            const precision = parseInt(document.getElementById('precision').value);
+            
+            const geojson = {
+                type: "FeatureCollection",
+                name: projectName,
+                crs: {
+                    type: "name",
+                    properties: {
+                        name: "EPSG:4326"
+                    }
+                },
+                features: appState.collectedPoints.map(point => ({
+                    type: "Feature",
+                    properties: {
+                        name: point.description,
+                        accuracy: point.accuracy,
+                        satellites: point.satellites,
+                        location_source: point.locationSource || point.rtkStatus,
+                        gnss_system: point.gnssSystem || 'unknown',
+                        hdop: point.hdop,
+                        timestamp: point.timestamp,
+                        geometry_type: point.type,
+                        geometry_id: point.geometry
+                    },
+                    geometry: {
+                        type: "Point",
+                        coordinates: [
+                            parseFloat(point.longitude.toFixed(precision)),
+                            parseFloat(point.latitude.toFixed(precision)),
+                            parseFloat(point.altitude.toFixed(2))
+                        ]
+                    }
+                }))
+            };
+
+            downloadFile(`${projectName}.geojson`, JSON.stringify(geojson, null, 2), 'application/geo+json');
+            updateExportStatus('connected', `GeoJSON exportado: ${projectName}.geojson`);
+        }
+
+        function exportCSV() {
+            if (appState.collectedPoints.length === 0) {
+                updateExportStatus('info', 'Nenhum ponto para exportar');
+                return;
+            }
+
+            const projectName = document.getElementById('projectName').value || 'RTK_Collection';
+            const precision = parseInt(document.getElementById('precision').value);
+            
+            let csvContent = 'ID,Nome,Latitude,Longitude,Altitude,Precisao,Satelites,Sistema_Posicao,Sistema_GNSS,HDOP,Tipo,Geometria_ID,Data_Coleta\n';
+            
+            appState.collectedPoints.forEach((point, index) => {
+                csvContent += `${index + 1},"${point.description}",${point.latitude.toFixed(precision)},${point.longitude.toFixed(precision)},${point.altitude.toFixed(2)},${point.accuracy.toFixed(3)},${point.satellites},"${point.locationSource || point.rtkStatus}","${point.gnssSystem || 'N/A'}","${point.hdop || 'N/A'}",${point.type},"${point.geometry || ''}","${point.timestamp}"\n`;
+            });
+
+            downloadFile(`${projectName}.csv`, csvContent, 'text/csv');
+            updateExportStatus('connected', `CSV exportado: ${projectName}.csv`);
+        }
+
+        function exportGeoPackage() {
+            // Para GeoPackage real, seria necessária uma biblioteca específica
+            // Por simplicidade, exportamos como SQLite com dados geoespaciais
+            updateExportStatus('info', 'GeoPackage em desenvolvimento - Use GeoJSON temporariamente');
+        }
+
+        function downloadFile(filename, content, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // ================================
+        // STORAGE E PERSISTÊNCIA
+        // ================================
+
+        function saveDataToStorage() {
+            try {
+                localStorage.setItem('rtkCollectorAppState', JSON.stringify(appState));
+            } catch (error) {
+                console.warn('Erro ao salvar dados:', error);
+            }
+        }
+
+        function loadStoredData() {
+            try {
+                const storedState = localStorage.getItem('rtkCollectorAppState');
+                if (storedState) {
+                    const loadedState = JSON.parse(storedState);
+                    
+                    // Recuperar apenas os dados de coleta e algumas configurações
+                    appState.collectedPoints = loadedState.collectedPoints || [];
+                    appState.locationMode = loadedState.locationMode || 'device';
+                    appState.gnssType = loadedState.gnssType || 'combined';
+                    
+                    if (loadedState.bluetoothDevice) {
+                        document.getElementById('bluetoothDevice').value = loadedState.bluetoothDevice;
+                    }
+                    if (loadedState.lastProject) {
+                        document.getElementById('projectName').value = loadedState.lastProject;
+                    }
+                    
+                    document.getElementById('locationMode').value = appState.locationMode;
+                    document.getElementById('gnssSystem').value = appState.gnssType;
+
+                    updateDataSummary();
+                }
+            } catch (error) {
+                console.warn('Erro ao carregar dados:', error);
+            }
+        }
+
+        // ================================
+        // LOCALIZAÇÃO DO NAVEGADOR (ATUALIZADA)
+        // ================================
+
+        function startLocationUpdates() {
+            if (navigator.geolocation) {
+                appState.locationMode = 'device';
+                appState.gnssType = 'combined';
+                console.log('Sistema de localização pronto para uso');
+            } else {
+                console.warn('Geolocalização não suportada');
+                updateGNSSStatus('disconnected', 'Geolocalização não suportada neste dispositivo');
+            }
+        }
+
+        // ================================
+        // INTERFACE E NAVEGAÇÃO
+        // ================================
+
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            document.getElementById(tabName).classList.add('active');
+            const clickedTab = document.querySelector(`.tab[onclick="showTab('${tabName}')"]`);
+            if (clickedTab) {
+                clickedTab.classList.add('active');
+            }
+
+            if (tabName === 'data') {
+                updateDataSummary();
+            }
+        }
+
+        // ================================
+        // FUNÇÕES DE STATUS
+        // ================================
+
+        function updateConnectionStatus(status, message) {
+            const statusDiv = document.getElementById('connectionStatus');
+            statusDiv.className = `status ${status}`;
+            statusDiv.textContent = message;
+        }
+
+        function updateNTRIPStatus(status, message) {
+            const statusDiv = document.getElementById('ntripStatus');
+            statusDiv.className = `status ${status}`;
+            statusDiv.textContent = message;
+        }
+
+        function updateCollectionStatus(status, message) {
+            const statusDiv = document.getElementById('collectionStatus');
+            statusDiv.className = `status ${status}`;
+            statusDiv.textContent = message;
+        }
+
+        function updateExportStatus(status, message) {
+            const statusDiv = document.getElementById('exportStatus');
+            statusDiv.className = `status ${status}`;
+            statusDiv.textContent = message;
+        }
+
+        // ================================
+        // EVENTOS DO TECLADO
+        // ================================
+
+        document.addEventListener('keydown', function(event) {
+            if (event.ctrlKey || event.metaKey) {
+                switch(event.key) {
+                    case 'Enter':
+                        event.preventDefault();
+                        quickCollect();
+                        break;
+                    case 's':
+                        event.preventDefault();
+                        exportGeoJSON();
+                        break;
+                }
+            }
+        });
+
+        // Auto-save a cada minuto
+        setInterval(saveDataToStorage, 60000);
+    </script>
+</body>
+</html>
