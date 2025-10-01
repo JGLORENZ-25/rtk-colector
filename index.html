@@ -470,12 +470,11 @@
                         <select class="form-control" id="locationMode" onchange="changeLocationMode()">
                             <option value="device">📱 GNSS do Dispositivo</option>
                             <option value="rtk">🛰️ Receptor RTK Externo (Serial/USB)</option>
-                            <option value="combined">🔄 Combinado (Device + RTK)</option>
                         </select>
                     </div>
 
                     <div class="form-group">
-                        <label>Sistemas GNSS Disponíveis:</label>
+                        <label>Sistemas GNSS (Apenas para modo Dispositivo):</label>
                         <select class="form-control" id="gnssSystem" onchange="changeGNSSSystem()">
                             <option value="combined">🌍 Todos os Sistemas (Recomendado)</option>
                             <option value="gps">🇺🇸 GPS (Estados Unidos)</option>
@@ -487,7 +486,7 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Configurações de Precisão:</label>
+                        <label>Configurações de Precisão (Apenas para modo Dispositivo):</label>
                         <select class="form-control" id="accuracyMode" onchange="changeAccuracyMode()">
                             <option value="high">🎯 Alta Precisão (Mais lento, mais bateria)</option>
                             <option value="balanced">⚖️ Balanceado (Recomendado)</option>
@@ -499,7 +498,6 @@
                         <button class="btn btn-primary" onclick="startDeviceGNSS()">
                             <span id="deviceGnssText">🛰️ Ativar GNSS</span>
                         </button>
-                        <button class="btn btn-warning" onclick="calibrateDevice()">🧭 Calibrar Sensores</button>
                         <button class="btn btn-danger" onclick="stopDeviceGNSS()">⏹️ Parar GNSS</button>
                     </div>
 
@@ -595,7 +593,7 @@
                     </div>
                     
                     <div id="positioningStatus" class="status info">
-                        ℹ️ Escolha um sistema de posicionamento na aba GNSS
+                        ℹ️ Escolha um sistema de posicionamento
                     </div>
                 </div>
 
@@ -619,7 +617,7 @@
                     </div>
 
                     <div id="collectionStatus" class="status info">
-                        ℹ️ Pronto para coletar - Selecione o tipo de geometria
+                        ℹ️ Pronto para coletar
                     </div>
                 </div>
 
@@ -730,26 +728,20 @@
             isConnected: false,
             collectedPoints: [],
             currentGeometry: null,
-            geometryType: 'POINT',
             isCollecting: false,
             currentLocation: { lat: 0, lon: 0, alt: 0, accuracy: 0, satellites: 0, fixQuality: 0, hdop: 0 },
-            locationMode: 'device', // 'device', 'rtk', 'combined'
-            gnssType: 'combined', // 'gps', 'glonass', 'galileo', 'beidou', 'qzss', 'combined'
+            locationMode: 'device',
+            gnssType: 'combined',
             deviceWatchId: null,
-            locationHistory: []
         };
 
-        // Inicialização
+        // ================================
+        // INICIALIZAÇÃO
+        // ================================
         document.addEventListener('DOMContentLoaded', function() {
             initializePWA();
             loadStoredData();
             initializeGNSSSystem();
-            
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('sw.js')
-                    .then(registration => console.log('Service Worker registrado com sucesso:', registration))
-                    .catch(error => console.log('Falha no registro do Service Worker:', error));
-            }
         });
 
         function initializePWA() {
@@ -759,20 +751,8 @@
         }
 
         function initializeGNSSSystem() {
-            if (navigator.geolocation) {
-                requestLocationPermissions();
-            } else {
+            if (!navigator.geolocation) {
                 updateGNSSStatus('disconnected', '❌ Sistema GNSS não disponível neste dispositivo');
-            }
-        }
-
-        async function requestLocationPermissions() {
-            try {
-                if ('permissions' in navigator) {
-                    await navigator.permissions.query({name: 'geolocation'});
-                }
-            } catch (error) {
-                console.warn('⚠️ Não foi possível verificar permissões:', error);
             }
         }
         
@@ -784,10 +764,7 @@
                 alert("Seu navegador não suporta a Web Serial API. Use o Google Chrome ou Microsoft Edge na versão mais recente.");
                 return;
             }
-
-            if (appState.isConnected) {
-                return;
-            }
+            if (appState.isConnected) return;
 
             const connectBtn = document.getElementById('serialConnectText');
             connectBtn.innerHTML = '<span class="loading"></span>Conectando...';
@@ -803,9 +780,7 @@
                 
                 updateConnectionStatus('connected', '✅ Conectado ao receptor GNSS via Serial/USB');
                 connectBtn.textContent = '✅ Conectado';
-
                 readFromSerial();
-
             } catch (error) {
                 console.error('❌ Erro na conexão Serial:', error);
                 updateConnectionStatus('disconnected', '❌ Erro: ' + error.message);
@@ -818,10 +793,9 @@
             const textDecoder = new TextDecoderStream();
             const readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
             reader = textDecoder.readable.getReader();
-
             let lineBuffer = '';
 
-            while (port.readable && keepReading) {
+            while (port && port.readable && keepReading) {
                 try {
                     const { value, done } = await reader.read();
                     if (done) break;
@@ -835,18 +809,15 @@
                             parseNMEA_GGA(line);
                         }
                     });
-
                 } catch (error) {
                     console.error("Erro ao ler da porta serial:", error);
                     break;
                 }
             }
-            
             if (reader) reader.releaseLock();
             await readableStreamClosed.catch(() => {});
         }
         
-        // PARSER DE DADOS REAIS DO RECEPTOR EXTERNO
         function parseNMEA_GGA(sentence) {
             const parts = sentence.split(',');
             if (parts.length < 10) return;
@@ -870,36 +841,27 @@
             const satellites = parseInt(parts[7], 10);
             const hdop = parseFloat(parts[8]);
             const altitude = parseFloat(parts[9]);
-
-            let accuracy = hdop * 2;
+            let accuracy = hdop * 2.5;
             if (fixQuality === 4 || fixQuality === 5) {
                 accuracy = 0.02 + (hdop * 0.05);
             }
 
             appState.currentLocation = {
-                lat: latitude,
-                lon: longitude,
-                alt: altitude,
-                accuracy: accuracy,
-                satellites: satellites,
-                hdop: hdop,
-                fixQuality: fixQuality
+                lat: latitude, lon: longitude, alt: altitude, accuracy, satellites, hdop, fixQuality
             };
             
-            resetSatelliteDisplay(); // Limpa a simulação do modo interno
+            resetSatelliteDisplay();
             document.getElementById('gpsCount').textContent = "N/A";
             document.getElementById('glonassCount').textContent = "N/A";
 
-            if (appState.locationMode === 'rtk' || appState.locationMode === 'combined') {
+            if (appState.locationMode === 'rtk') {
                 updateLocationDisplay();
             }
         }
         
         async function disconnect() {
             keepReading = false;
-            if (reader) {
-                await reader.cancel().catch(() => {});
-            }
+            if (reader) await reader.cancel().catch(() => {});
             if (port) {
                 await port.close().catch(() => {});
                 port = null;
@@ -912,10 +874,8 @@
         // ================================
         // GNSS DO DISPOSITIVO (COM SIMULAÇÃO VISUAL)
         // ================================
-
         function changeLocationMode() {
-            const mode = document.getElementById('locationMode').value;
-            appState.locationMode = mode;
+            appState.locationMode = document.getElementById('locationMode').value;
         }
 
         function changeGNSSSystem() {
@@ -927,6 +887,33 @@
                 stopDeviceGNSS();
                 startDeviceGNSS();
             }
+        }
+
+        // <<<< FUNÇÃO CORRIGIDA ESTÁ AQUI >>>>
+        function getLocationOptions() {
+            const accuracyMode = document.getElementById('accuracyMode').value;
+            let options = {
+                enableHighAccuracy: true,
+                maximumAge: 0,
+                timeout: 15000
+            };
+
+            switch (accuracyMode) {
+                case 'high':
+                    options.enableHighAccuracy = true;
+                    options.timeout = 27000;
+                    options.maximumAge = 0;
+                    break;
+                case 'balanced':
+                    // Os padrões já são balanceados
+                    break;
+                case 'low':
+                    options.enableHighAccuracy = false;
+                    options.timeout = 10000;
+                    options.maximumAge = 60000;
+                    break;
+            }
+            return options;
         }
 
         async function startDeviceGNSS() {
@@ -941,7 +928,7 @@
             updateGNSSStatus('connecting', '🔄 Iniciando GNSS do dispositivo...');
 
             try {
-                const options = getLocationOptions();
+                const options = getLocationOptions(); // Chamada para a função corrigida
                 appState.deviceWatchId = navigator.geolocation.watchPosition(
                     handleDeviceLocation,
                     handleLocationError,
@@ -957,7 +944,7 @@
 
         function handleDeviceLocation(position) {
             const { coords } = position;
-            if (appState.locationMode === 'device' || appState.locationMode === 'combined') {
+            if (appState.locationMode === 'device') {
                 appState.currentLocation = {
                     lat: coords.latitude,
                     lon: coords.longitude,
@@ -965,9 +952,9 @@
                     accuracy: coords.accuracy || 999,
                     satellites: estimateSatelliteCount(coords.accuracy),
                     hdop: calculateHDOP(coords.accuracy),
-                    fixQuality: 1, // Simula um fix de GPS padrão
+                    fixQuality: 1,
                 };
-                simulateSatelliteInfo(); // ATUALIZA A SIMULAÇÃO VISUAL
+                simulateSatelliteInfo();
                 updateLocationDisplay();
             }
         }
@@ -975,6 +962,7 @@
         function handleLocationError(error) {
             let msg = error.code === 1 ? 'Permissão negada' : 'Posição indisponível';
             updateGNSSStatus('disconnected', '❌ ' + msg);
+            stopDeviceGNSS();
         }
 
         function stopDeviceGNSS() {
@@ -987,7 +975,6 @@
             resetSatelliteDisplay();
         }
         
-        // FUNÇÕES DE SIMULAÇÃO VISUAL PARA GNSS INTERNO
         function estimateSatelliteCount(accuracy) {
             if (accuracy < 3) return 15;
             if (accuracy < 5) return 12;
@@ -1010,7 +997,7 @@
                 distribution.glonass = Math.round(totalSats * 0.25);
                 distribution.galileo = Math.round(totalSats * 0.2);
                 distribution.beidou = Math.round(totalSats * 0.15);
-            } else {
+            } else if (distribution.hasOwnProperty(selectedSystem)) {
                 distribution[selectedSystem] = totalSats;
             }
             
@@ -1022,11 +1009,9 @@
         }
 
         function resetSatelliteDisplay() {
-            document.getElementById('gpsCount').textContent = '--';
-            document.getElementById('glonassCount').textContent = '--';
-            document.getElementById('galileoCount').textContent = '--';
-            document.getElementById('beidouCount').textContent = '--';
-            document.getElementById('qzssCount').textContent = '--';
+            ['gpsCount', 'glonassCount', 'galileoCount', 'beidouCount', 'qzssCount'].forEach(id => {
+                document.getElementById(id).textContent = '--';
+            });
         }
 
         // ================================
@@ -1051,7 +1036,7 @@
                 statusMessage = `✅ Sistema GNSS do dispositivo ativo`;
             } else if (appState.locationMode === 'rtk' && appState.isConnected) {
                 activeSystemText = getFixQualityText(loc.fixQuality);
-                statusClass = loc.fixQuality >= 2 ? 'connected' : 'connecting';
+                statusClass = loc.fixQuality >= 4 ? 'connected' : 'connecting';
                 statusMessage = `✅ Receptor Externo ativo - Qualidade: ${activeSystemText}`;
             }
             
@@ -1074,8 +1059,10 @@
         // COLETA DE DADOS
         // ================================
         function collectPoint(type = 'POINT') {
-            const hasLocation = (appState.locationMode === 'device' && appState.deviceWatchId) || (appState.locationMode === 'rtk' && appState.isConnected && appState.currentLocation.fixQuality > 0);
-            if (!hasLocation) {
+            const isDeviceModeValid = appState.locationMode === 'device' && appState.deviceWatchId;
+            const isRtkModeValid = appState.locationMode === 'rtk' && appState.isConnected && appState.currentLocation.fixQuality > 0;
+            
+            if (!isDeviceModeValid && !isRtkModeValid) {
                 updateCollectionStatus('info', '⚠️ Ative um sistema de posicionamento com sinal válido');
                 return;
             }
@@ -1111,6 +1098,7 @@
             updateCollectionStatus('connecting', '📏 Modo LINHA ativo');
             document.getElementById('lineBtn').textContent = '⏹️ Finalizar Linha';
             document.getElementById('lineBtn').setAttribute('onclick', 'finishGeometry()');
+            document.getElementById('polygonBtn').disabled = true;
         }
 
         function startPolygon() {
@@ -1118,6 +1106,7 @@
             updateCollectionStatus('connecting', '📐 Modo POLÍGONO ativo');
             document.getElementById('polygonBtn').textContent = '⏹️ Finalizar Polígono';
             document.getElementById('polygonBtn').setAttribute('onclick', 'finishGeometry()');
+            document.getElementById('lineBtn').disabled = true;
         }
 
         function finishGeometry() {
@@ -1127,6 +1116,8 @@
             document.getElementById('lineBtn').setAttribute('onclick', 'startLine()');
             document.getElementById('polygonBtn').textContent = '📐 Iniciar Polígono';
             document.getElementById('polygonBtn').setAttribute('onclick', 'startPolygon()');
+            document.getElementById('lineBtn').disabled = false;
+            document.getElementById('polygonBtn').disabled = false;
         }
 
         function quickCollect() {
@@ -1161,10 +1152,10 @@
                 listContainer.innerHTML = `<div style="text-align: center; color: #666; padding: 20px;">Nenhum ponto coletado ainda</div>`;
                 return;
             }
-            listContainer.innerHTML = appState.collectedPoints.map(point => `
+            listContainer.innerHTML = appState.collectedPoints.slice().reverse().map(point => `
                 <div class="point-item">
                     <strong>${point.description}</strong><br>
-                    <small>Lat: ${point.latitude.toFixed(7)}, Lon: ${point.longitude.toFixed(7)} | Precisão: ${point.accuracy.toFixed(3)}m | Qualidade: ${point.locationSource}</small>
+                    <small>Lat: ${point.latitude.toFixed(7)}, Lon: ${point.longitude.toFixed(7)} | Precisão: ${point.accuracy.toFixed(3)}m | Fonte: ${point.locationSource}</small>
                 </div>`).join('');
         }
 
@@ -1195,7 +1186,7 @@
                     mimeType = 'application/vnd.google-earth.kml+xml';
                     content = `<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>${projectName}</name>`;
                     appState.collectedPoints.forEach(p => {
-                        content += `<Placemark><name>${p.description}</name><description>Precisão: ${p.accuracy.toFixed(3)}m, Qualidade: ${p.locationSource}</description><Point><coordinates>${p.longitude.toFixed(precision)},${p.latitude.toFixed(precision)},${p.altitude.toFixed(2)}</coordinates></Point></Placemark>`;
+                        content += `<Placemark><name>${p.description}</name><description>Precisão: ${p.accuracy.toFixed(3)}m, Fonte: ${p.locationSource}</description><Point><coordinates>${p.longitude.toFixed(precision)},${p.latitude.toFixed(precision)},${p.altitude.toFixed(2)}</coordinates></Point></Placemark>`;
                     });
                     content += `</Document></kml>`;
                     break;
@@ -1204,7 +1195,7 @@
                     mimeType = 'application/geo+json';
                     const features = appState.collectedPoints.map(p => ({
                         type: "Feature",
-                        properties: { name: p.description, accuracy: p.accuracy, fix_quality: p.locationSource, satellites: p.satellites, hdop: p.hdop, timestamp: p.timestamp },
+                        properties: { name: p.description, accuracy: p.accuracy, source: p.locationSource, satellites: p.satellites, hdop: p.hdop, timestamp: p.timestamp },
                         geometry: { type: "Point", coordinates: [parseFloat(p.longitude.toFixed(precision)), parseFloat(p.latitude.toFixed(precision)), parseFloat(p.altitude.toFixed(2))] }
                     }));
                     content = JSON.stringify({ type: "FeatureCollection", features }, null, 2);
@@ -1212,7 +1203,7 @@
                 case 'csv':
                     extension = 'csv';
                     mimeType = 'text/csv';
-                    content = 'ID,Nome,Latitude,Longitude,Altitude,Precisao,Qualidade_Fix,Satelites,HDOP,Data_Coleta\n';
+                    content = 'ID,Nome,Latitude,Longitude,Altitude,Precisao_m,Fonte,Satelites,HDOP,Data_Coleta\n';
                     appState.collectedPoints.forEach((p, i) => {
                         content += `${i + 1},"${p.description}",${p.latitude.toFixed(precision)},${p.longitude.toFixed(precision)},${p.altitude.toFixed(2)},${p.accuracy.toFixed(3)},"${p.locationSource}",${p.satellites},"${p.hdop || 'N/A'}","${p.timestamp}"\n`;
                     });
@@ -1234,7 +1225,7 @@
         function downloadFile(filename, content, mimeType) {
             const blob = new Blob([content], { type: mimeType });
             const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
+a.href = URL.createObjectURL(blob);
             a.download = filename;
             document.body.appendChild(a);
             a.click();
